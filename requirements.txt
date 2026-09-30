@@ -1,0 +1,2 @@
+# Viaggio Italia uses the high-performance Python 3 standard library
+# No heavy external dependencies required

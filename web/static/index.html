@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Viaggio Italia — Local Travel Planner & AI Concierge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-wrapper">
+        <div class="flag-accent">
+          <span class="flag-green"></span>
+          <span class="flag-white"></span>
+          <span class="flag-red"></span>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">VIAGGIO ITALIA</h1>
+          <span class="brand-subtitle">Local Travel Planner & Maps MCP</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="tab-home">🏠 Home</button>
+        <button class="nav-tab" data-tab="tab-explore">🗺️ Explore</button>
+        <button class="nav-tab" data-tab="tab-planner">✈️ Plan Trip</button>
+        <button class="nav-tab" data-tab="tab-itinerary">📅 Itinerary & Map</button>
+        <button class="nav-tab" data-tab="tab-selections">🎯 My Selected Plan <span id="selected-stops-badge" class="badge-count">0</span></button>
+      </nav>
+
+      <div class="header-actions">
+        <select id="global-llm-select" class="select-dropdown" title="Select LLM Engine">
+          <option value="auto">🔀 Hybrid (Groq + Gemini)</option>
+          <option value="groq">⚡ Groq (Llama / OSS 120B)</option>
+          <option value="gemini">✨ Gemini 3.8 Flash</option>
+        </select>
+        <select id="global-dest-select" class="select-dropdown">
+          <option value="sorrento">🍋 Sorrento & Amalfi</option>
+          <option value="rome">🏛️ Rome</option>
+          <option value="bari">🫒 Bari</option>
+          <option value="puglia">🛖 Puglia (Valle d'Itria)</option>
+          <option value="milan">🏰 Milan</option>
+          <option value="lake_garda">⛰️ Lake Garda</option>
+        </select>
+        <button id="open-mcp-modal-btn" class="btn btn-outline btn-sm" title="Test the 9 Maps MCP Tools">🛠️ Maps MCP</button>
+        <button id="open-chat-drawer-btn" class="btn btn-primary btn-sm">💬 AI Concierge</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="main-container">
+
+    <!-- TAB 1: HOME & PRESETS -->
+    <section id="tab-home" class="tab-content active">
+      <div class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <span class="hero-badge">⚡ Groq + ✨ Gemini Hybrid AI & Maps MCP</span>
+          <h2 class="hero-title">Experience Italy with Authentic Local Pacing</h2>
+          <p class="hero-desc">
+            Powered by Dual Groq + Gemini AI Travel Agent & Custom Google Maps MCP routing. Verified ticketing urgency, authentic regional cuisine with 4-tier vegetarian classification, and zero backtracking.
+          </p>
+          <div class="hero-actions">
+            <button class="btn btn-accent btn-lg" onclick="app.switchToTab('tab-planner')">✨ Custom Trip Planner</button>
+            <button class="btn btn-glass btn-lg" onclick="app.loadPreset('sorrento')">🍋 Sorrento 3-Day Journey</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Preset Cards -->
+      <div class="section-header">
+        <h3>Curated Signature Journeys</h3>
+        <p>Instant 1-click itineraries optimized for geographic clustering and authentic food discovery.</p>
+      </div>
+
+      <div class="presets-grid">
+        <div class="preset-card" onclick="app.loadPreset('sorrento')">
+          <div class="preset-img-wrapper sorrento-bg">
+            <span class="preset-tag">3 Days · Campania</span>
+          </div>
+          <div class="preset-body">
+            <h4>Sorrento, Pompeii & Isle of Capri</h4>
+            <p>Historic lemon groves, Marina Grande trattorias, fast-track Pompeii ruins, and Capri hydrofoil crossing.</p>
+            <div class="preset-meta">
+              <span>🚶 Walking & Ferry</span>
+              <span>🥗 100% Veg Friendly</span>
+              <span class="badge-highlight">⭐ 4.9 Local Score</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="preset-card" onclick="app.loadPreset('rome')">
+          <div class="preset-img-wrapper rome-bg">
+            <span class="preset-tag">3 Days · Lazio</span>
+          </div>
+          <div class="preset-body">
+            <h4>Rome: Imperial Antiquities & Vatican Treasures</h4>
+            <p>Colosseum underground, Pantheon dome, Sistine Chapel, Borghese Bernini masterpieces, and Trastevere Cacio e Pepe.</p>
+            <div class="preset-meta">
+              <span>🚶 Centro Storico Walk</span>
+              <span>🏛️ Ancient Wonders</span>
+              <span class="badge-highlight">⭐ 4.9 Local Score</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="preset-card" onclick="app.loadPreset('puglia')">
+          <div class="preset-img-wrapper puglia-bg">
+            <span class="preset-tag">4 Days · Puglia</span>
+          </div>
+          <div class="preset-body">
+            <h4>Puglia: Trulli Fairytales, Cliff Coves & Sassi Caves</h4>
+            <p>Alberobello stone cones, Polignano turquoise cliffs, Bari hand-rolled orecchiette, and ancient Matera ravines.</p>
+            <div class="preset-meta">
+              <span>🚗 Scenic Drive</span>
+              <span>🫒 Ancient Olive Groves</span>
+              <span class="badge-highlight">⭐ 4.8 Local Score</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="preset-card" onclick="app.loadPreset('milan')">
+          <div class="preset-img-wrapper milan-bg">
+            <span class="preset-tag">2 Days · Lombardy</span>
+          </div>
+          <div class="preset-body">
+            <h4>Milan: Fashion, Duomo & Da Vinci's Last Supper</h4>
+            <p>Duomo rooftop marble terraces, Da Vinci's Cenacolo, Brera arts district, and Navigli canal aperitivo.</p>
+            <div class="preset-meta">
+              <span>🚇 Metro & Trams</span>
+              <span>🎨 Renaissance Art</span>
+              <span class="badge-highlight">⭐ 4.8 Local Score</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="preset-card" onclick="app.loadPreset('bari')">
+          <div class="preset-img-wrapper bari-bg">
+            <span class="preset-tag">2 Days · Adriatic Coast</span>
+          </div>
+          <div class="preset-body">
+            <h4>Bari: Medieval Alleys, Saint Nicholas & Lungomare</h4>
+            <p>Nonnas rolling fresh orecchiette, Basilica di San Nicola crypt, seaside promenade, and wood-fired focaccia.</p>
+            <div class="preset-meta">
+              <span>🚶 Pedestrian Old Town</span>
+              <span>🍕 Focaccia Barese</span>
+              <span class="badge-highlight">⭐ 4.8 Local Score</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="preset-card" onclick="app.loadPreset('lake_garda')">
+          <div class="preset-img-wrapper garda-bg">
+            <span class="preset-tag">3 Days · Alpine & Thermal</span>
+          </div>
+          <div class="preset-body">
+            <h4>Lake Garda: Sirmione Castle, Grotte di Catullo & Monte Baldo</h4>
+            <p>Scaligero water fortress, Roman cliffside ruins, revolving cableway to 1,760m alpine peaks, and lemon groves.</p>
+            <div class="preset-meta">
+              <span>⛴️ Scenic Lake Ferry</span>
+              <span>🏰 Scaliger Castles</span>
+              <span class="badge-highlight">⭐ 4.9 Local Score</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: EXPLORE & PLACES -->
+    <section id="tab-explore" class="tab-content">
+      <div class="explore-header">
+        <div>
+          <h2>Discover Authentic Italian Points of Interest</h2>
+          <p>Verified opening hours, ticket lead times, and official booking URLs.</p>
+        </div>
+        <div class="search-bar-wrapper">
+          <input type="text" id="explore-search-input" class="input-search" placeholder="Search attractions, beaches, museums...">
+          <button class="btn btn-primary" id="explore-search-btn">Search</button>
+        </div>
+      </div>
+
+      <!-- Category Filter Chips -->
+      <div class="category-chips">
+        <button class="chip active" data-category="all">✨ All Places</button>
+        <button class="chip" data-category="historical">🏛️ Historical</button>
+        <button class="chip" data-category="museums">🎨 Museums</button>
+        <button class="chip" data-category="beaches">🏖️ Beaches & Sea</button>
+        <button class="chip" data-category="viewpoints">🌅 Scenic Viewpoints</button>
+        <button class="chip" data-category="churches">⛪ Sacred Sites</button>
+        <button class="chip" data-category="shopping">🛍️ Artisan Shopping</button>
+      </div>
+
+      <div id="explore-places-grid" class="places-grid">
+        <!-- Dynamic Place Cards rendered via JavaScript -->
+        <div class="loading-spinner">Loading verified places...</div>
+      </div>
+    </section>
+
+    <!-- TAB 3: PLAN TRIP FORM -->
+    <section id="tab-planner" class="tab-content">
+      <div class="planner-card">
+        <div class="planner-card-header">
+          <h2>Custom Itinerary Generator</h2>
+          <p>Define your personal preferences for 12-factor scoring, no-backtracking clustering, and realistic pacing.</p>
+        </div>
+
+        <form id="trip-planner-form" class="planner-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="form-destination">Destination / Region</label>
+              <select id="form-destination" class="form-control" required>
+                <option value="sorrento">Sorrento & Amalfi Coast</option>
+                <option value="rome">Rome</option>
+                <option value="bari">Bari</option>
+                <option value="puglia">Puglia & Valle d'Itria</option>
+                <option value="milan">Milan</option>
+                <option value="lake_garda">Lake Garda</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="form-duration">Trip Duration</label>
+              <select id="form-duration" class="form-control">
+                <option value="2">2 Days (Weekend Escape)</option>
+                <option value="3" selected>3 Days (Signature Journey)</option>
+                <option value="4">4 Days (Deep Discovery)</option>
+                <option value="5">5 Days (Extended Exploration)</option>
+                <option value="7">7 Days (Grand Tour)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="form-pace">Travel Pace</label>
+              <select id="form-pace" class="form-control">
+                <option value="relaxed">Relaxed (Leisurely, 1-2 stops/day, ≤6h active)</option>
+                <option value="balanced" selected>Balanced (Optimal, 2-3 stops/day, ≤8h active)</option>
+                <option value="intense">Intense (Fast-paced, 3-4 stops/day, ~9h active)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="form-dietary">Dietary Preference</label>
+              <select id="form-dietary" class="form-control">
+                <option value="vegetarian" selected>🥗 Strictly Vegetarian / Plant-Forward</option>
+                <option value="pescatarian">🐟 Pescatarian (Seafood & Veg)</option>
+                <option value="non_vegetarian">🥩 Traditional & Meat-Friendly</option>
+                <option value="both">🍽️ All Cuisines</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="form-hotel">Base Hotel / Accommodation (Optional)</label>
+            <input type="text" id="form-hotel" class="form-control" placeholder="e.g. Grand Hotel La Favorita, or Central Accommodation">
+          </div>
+
+          <div class="form-group full-width">
+            <label>Travel Interests & Focus Areas</label>
+            <div class="interests-checkboxes">
+              <label class="checkbox-label"><input type="checkbox" name="interests" value="historical" checked> 🏛️ Ancient History</label>
+              <label class="checkbox-label"><input type="checkbox" name="interests" value="museums" checked> 🎨 Art & Museums</label>
+              <label class="checkbox-label"><input type="checkbox" name="interests" value="beaches" checked> 🏖️ Beaches & Coastal Coves</label>
+              <label class="checkbox-label"><input type="checkbox" name="interests" value="viewpoints" checked> 🌅 Panoramic Sunsets</label>
+              <label class="checkbox-label"><input type="checkbox" name="interests" value="shopping" checked> 🛍️ Artisan Crafts & Shopping</label>
+            </div>
+          </div>
+
+          <div class="form-submit-wrapper">
+            <button type="submit" id="generate-trip-btn" class="btn btn-primary btn-lg">🚀 Generate Optimized Itinerary</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 4: ITINERARY & INTERACTIVE MAP VIEW -->
+    <section id="tab-itinerary" class="tab-content">
+      <div class="itinerary-view-container">
+
+        <!-- Left Column: Timeline & Day Schedule -->
+        <div class="itinerary-timeline-pane">
+          <div class="itinerary-header-bar">
+            <div>
+              <h2 id="trip-title">Sorrento Signature Journey</h2>
+              <p id="trip-subtitle">3 Days · Balanced Pace · Vegetarian Cuisine</p>
+            </div>
+            <div class="itinerary-action-btns">
+              <button class="btn btn-outline btn-sm" onclick="app.exportTripJSON()">💾 Export JSON</button>
+              <button class="btn btn-outline btn-sm" onclick="app.copyMarkdownSummary()">📋 Copy Markdown</button>
+              <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Print / PDF</button>
+            </div>
+          </div>
+
+          <!-- Day Tabs -->
+          <div id="day-tabs-container" class="day-tabs-row">
+            <!-- Rendered dynamically e.g. Day 1, Day 2, Day 3 -->
+          </div>
+
+          <!-- Active Day Header with Pacing Pills -->
+          <div id="active-day-pacing-bar" class="day-pacing-bar">
+            <div class="pacing-badge-wrapper">
+              <span id="pacing-status-pill" class="pacing-pill status-comfortable">🟢 Comfortable Day (6h 30m)</span>
+              <span id="pacing-walk-pill" class="pacing-pill pill-neutral">🚶 3.4 km Total Walking</span>
+            </div>
+            <div id="active-day-theme" class="day-theme-text">Theme: Historic Center & Marina Grande</div>
+          </div>
+
+          <!-- Chronological Timeline Cards -->
+          <div id="timeline-stops-container" class="timeline-stops-flow">
+            <!-- Rendered dynamically: Morning -> Transit -> Afternoon -> Lunch -> Sunset -> Dinner -->
+          </div>
+        </div>
+
+        <!-- Right Column: Interactive Map & Live Navigation -->
+        <div class="itinerary-map-pane">
+          <div class="map-header-bar">
+            <span>📍 Interactive Route Map</span>
+            <div class="map-legend">
+              <span class="legend-item"><span class="legend-dot stop-dot"></span> Sights</span>
+              <span class="legend-item"><span class="legend-dot rest-dot"></span> Food</span>
+              <span class="legend-item"><span class="legend-dot hotel-dot"></span> Hotel</span>
+            </div>
+          </div>
+          <div id="map-canvas" class="map-view"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 5: MY SELECTED PLAN & CUSTOMIZER -->
+    <section id="tab-selections" class="tab-content">
+      <div class="selections-header-bar">
+        <div>
+          <h2>🎯 My Selected Daily Plan</h2>
+          <p>Your custom itinerary assembled from the 7–8 curated daily options. Uncheck or check stops to dynamically update your route and active pacing.</p>
+        </div>
+        <div class="selections-header-actions">
+          <button class="btn btn-primary btn-sm" onclick="app.exportSelectedPlanJSON()">💾 Export Custom Plan</button>
+          <button class="btn btn-outline btn-sm" onclick="app.copySelectedPlanMarkdown()">📋 Copy Markdown</button>
+          <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Print Plan</button>
+        </div>
+      </div>
+
+      <div id="selections-stats-bar" class="selections-stats-bar">
+        <!-- Rendered dynamically: total stops, total hours, walking km -->
+      </div>
+
+      <div id="selected-days-container" class="selected-days-flow">
+        <!-- Rendered dynamically: Day 1, Day 2, Day 3 with selected stops -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Slide-over Conversational AI Drawer -->
+  <aside id="chat-drawer" class="chat-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title-wrapper">
+        <span class="drawer-avatar">🤖</span>
+        <div>
+          <h3>Viaggio AI Concierge</h3>
+          <span id="drawer-llm-status" class="status-indicator">● Hybrid (Groq + Gemini) & Maps MCP Connected</span>
+        </div>
+      </div>
+      <button id="close-chat-drawer-btn" class="btn-icon">✕</button>
+    </div>
+
+    <!-- Quick Action Chips -->
+    <div class="drawer-quick-chips">
+      <button class="quick-chip" onclick="app.sendChatMessage('Make Day 2 less tiring')">⚡ Less Tiring Day 2</button>
+      <button class="quick-chip" onclick="app.sendChatMessage('Replace dinner with 100% vegetarian trattoria')">🥗 Veg Dinner</button>
+      <button class="quick-chip" onclick="app.sendChatMessage('Swap Day 1 and Day 2')">🔄 Swap Days</button>
+      <button class="quick-chip" onclick="app.sendChatMessage('Add a scenic sunset viewpoint')">🌅 Add Sunset</button>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="chat-messages-container" class="chat-messages">
+      <div class="chat-bubble assistant">
+        Ciao! I am your AI travel guide for Italy powered by Groq & Gemini. You can ask me to mutate your itinerary, find vegetarian specialties, or optimize your day pacing. How can I help you today?
+      </div>
+    </div>
+
+    <!-- Chat Input Bar -->
+    <div class="drawer-input-bar">
+      <input type="text" id="chat-input-text" class="chat-input" placeholder="e.g. Make Day 2 less tiring, or swap Day 1 & 2...">
+      <button id="chat-send-btn" class="btn btn-primary btn-send">Send</button>
+    </div>
+  </aside>
+  <div id="drawer-backdrop" class="drawer-backdrop"></div>
+
+  <!-- MCP Tools Live Playground Modal -->
+  <div id="mcp-modal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>🛠️ Maps MCP Server 9-Tool Playground</h3>
+        <button id="close-mcp-modal-btn" class="btn-icon">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-description">
+          Directly execute any of the 9 Model Context Protocol tools exposed by the Custom Maps MCP Server.
+        </p>
+        <div class="mcp-tool-selector-row">
+          <select id="mcp-tool-select" class="form-control">
+            <option value="search_places">1. search_places</option>
+            <option value="search_nearby_places">2. search_nearby_places</option>
+            <option value="get_place_details">3. get_place_details</option>
+            <option value="search_restaurants">4. search_restaurants</option>
+            <option value="calculate_route">5. calculate_route</option>
+            <option value="compare_routes">6. compare_routes</option>
+            <option value="calculate_multi_stop_route">7. calculate_multi_stop_route</option>
+            <option value="calculate_route_matrix">8. calculate_route_matrix</option>
+            <option value="get_maps_url">9. get_maps_url</option>
+          </select>
+          <button id="mcp-run-tool-btn" class="btn btn-primary">Execute Tool</button>
+        </div>
+        <div class="mcp-editor-grid">
+          <div>
+            <label class="label-sm">Tool Arguments (JSON):</label>
+            <textarea id="mcp-args-json" class="code-editor">{"query": "Colosseum", "city_or_region": "Rome"}</textarea>
+          </div>
+          <div>
+            <label class="label-sm">Live MCP Response (JSON):</label>
+            <pre id="mcp-response-output" class="code-output">Click 'Execute Tool' to test live response.</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photo Lightbox Modal -->
+  <div id="photo-modal" class="modal-overlay">
+    <div class="modal-dialog photo-modal-dialog">
+      <div class="modal-header">
+        <h3 id="photo-modal-title">Place Photo & Visuals</h3>
+        <button id="close-photo-modal-btn" class="btn-icon" onclick="app.closePhotoLightbox()">✕</button>
+      </div>
+      <div class="photo-modal-body">
+        <div class="photo-lightbox-img-wrapper">
+          <img id="photo-modal-img" src="" alt="Place photo preview" class="photo-lightbox-img">
+        </div>
+        <div class="photo-modal-footer">
+          <a id="photo-modal-maps-link" href="#" target="_blank" class="btn btn-primary btn-lg">
+            📸 View Full High-Res Photos & 360 Street View on Google Maps ↗
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <p>Italy Local Travel Planner &copy; 2026 · Hybrid Groq + Gemini AI & Google Maps Platform MCP Server</p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>

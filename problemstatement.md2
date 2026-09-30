@@ -1,0 +1,75 @@
+# Italy Local Travel Planner — Problem Statement & Architecture Specification (v2)
+
+> **Document Version:** 2.0.0  
+> **Status:** Approved / Simplified MCP Architecture Specification  
+> **Core Concept:** Gemini AI Agent + Custom Maps MCP Server + Gemini Web Search Grounding  
+
+---
+
+## 1. System Architecture Overview
+
+In this streamlined architecture, you manually connect Gemini’s MCP capability in your Google AI Studio / Gemini agent setup. A single, dedicated **Custom Google Maps MCP Server** exists to expose all required geospatial, routing, and places functionality directly to the Gemini Travel Agent.
+
+```
+                    GEMINI AI AGENT
+                          │
+             ┌────────────┴────────────┐
+             │                         │
+       Gemini tools / MCP         YOUR MAPS MCP
+             │                         │
+             │                         ▼
+             │                  Google Maps APIs
+             │                         │
+             │              ┌──────────┼──────────┐
+             │              ▼          ▼          ▼
+             │           Places      Routes    Maps URLs
+             │
+             ▼
+       Web Search
+   (booking/current info)
+```
+
+---
+
+## 2. Core Responsibilities & Division of Labor
+
+### 2.1 Gemini AI Agent
+* **Contextual Reasoning & Conversational Interface:** Interprets traveler preferences, dietary rules, trip durations, and pacing constraints.
+* **Itinerary Synthesis & Optimization:** Decides which attractions to group together, orders activities chronologically, and integrates meal stops.
+* **Tool Invocation:** Autonomously decides when to call the **Maps MCP** for geographic ground truth and when to call **Web Search** for live booking/hours verification.
+
+### 2.2 Native Gemini Web Search
+* **Real-Time Live Information:** Retrieves current ticket requirements, seasonal closures, strike notices, and opening hours.
+* **Official Booking Links:** Discovers official ticketing URLs (e.g. `museivaticani.va`, `parcocolosseo.it`) avoiding predatory third-party affiliate blogs.
+
+### 2.3 Custom Google Maps MCP Server
+Exposes **exactly 9 dedicated tools** to the agent:
+
+1. `search_places`
+   * Search attractions, beaches, museums, historical sites, shopping, viewpoints, and other POIs.
+2. `search_nearby_places`
+   * Find things around a coordinate/place using radius-based and category-based discovery.
+3. `get_place_details`
+   * Retrieves place name, formatted address, coordinates (lat/lng), rating, review count, website, opening hours, place types, and Google Maps URL.
+4. `search_restaurants`
+   * Finds restaurants near a location with cuisine filtering, vegetarian/non-vegetarian compatibility search, price tier, rating filters, and Google Maps details.
+5. `calculate_route`
+   * Point A $\rightarrow$ Point B multi-modal routing (walking, driving, transit, bicycling).
+6. `compare_routes`
+   * Compares available transport modes between two points, providing distance, duration, and transit instructions.
+7. `calculate_multi_stop_route`
+   * Evaluates sequential multi-stop days (`Hotel -> Attraction -> Restaurant -> Attraction -> Hotel`), providing individual leg details, total distance, and total travel time.
+8. `calculate_route_matrix`
+   * Pairwise comparison across candidate attractions to geographically cluster places and eliminate backtracking.
+9. `get_maps_url`
+   * Generates deep-link Google Maps URLs for single destinations or multi-stop navigation.
+
+---
+
+## 3. Core Philosophy & Success Criteria
+
+> **"Don’t just show tourists what exists. Tell them what is actually worth doing, how to get there, how long it will take, what to eat, what needs booking, and how to experience the destination like a local."**
+
+* **Core Success Metric:**  
+  A user submits: *"I’m in Sorrento for 3 days, vegetarian, I like beaches, history, shopping and scenic places."*  
+  Within seconds, the Gemini AI Agent invokes the Maps MCP to discover places, compute transit, and group days, invokes Web Search to verify tickets, and returns an actionable, geographically clustered 3-day itinerary with exact travel times, verified vegetarian trattorias, local crowd tips, and one-tap Google Maps navigation.
