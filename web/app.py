@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from maps_mcp_server.google_maps_service import GoogleMapsService
 from agent.travel_agent import ItalyTravelAgent
-from knowledge_base.italy_knowledge import DESTINATIONS, PLACES, RESTAURANTS, REGIONAL_SIGNATURE_DISHES, TRANSIT_KNOWLEDGE
+from knowledge_base.italy_knowledge import DESTINATIONS, HOTELS, PLACES, RESTAURANTS, REGIONAL_SIGNATURE_DISHES, TRANSIT_KNOWLEDGE
 
 maps_service = GoogleMapsService()
 travel_agent = ItalyTravelAgent()
@@ -71,6 +71,8 @@ class TravelPlannerRequestHandler(SimpleHTTPRequestHandler):
                 })
             elif path == '/api/destinations':
                 self._send_json({'destinations': list(DESTINATIONS.values())})
+            elif path == '/api/hotels':
+                self._send_json({'hotels': HOTELS})
             elif path == '/api/explore':
                 city = query_params.get('city', [None])[0]
                 category = query_params.get('category', [None])[0]

@@ -31,6 +31,7 @@
         <button class="nav-tab" data-tab="tab-explore">🗺️ Explore</button>
         <button class="nav-tab" data-tab="tab-planner">✈️ Plan Trip</button>
         <button class="nav-tab" data-tab="tab-itinerary">📅 Itinerary & Map</button>
+        <button class="nav-tab" data-tab="tab-hotels">🏨 Hotels</button>
         <button class="nav-tab" data-tab="tab-selections">🎯 My Selected Plan <span id="selected-stops-badge" class="badge-count">0</span></button>
       </nav>
 
@@ -333,7 +334,51 @@
       </div>
     </section>
 
-    <!-- TAB 5: MY SELECTED PLAN & CUSTOMIZER -->
+    <!-- TAB 5: HOTELS & ACCOMMODATIONS -->
+    <section id="tab-hotels" class="tab-content">
+      <div class="hotels-header-bar">
+        <div>
+          <h2>🏨 Booked Accommodations & Hotels Timeline</h2>
+          <p>Verified Italian hotel reservations with check-in, checkout, exact addresses, amenities, and interactive map access.</p>
+        </div>
+        <div class="hotels-header-actions">
+          <button class="btn btn-outline btn-sm" onclick="app.exportHotelsJSON()">💾 Export Hotels JSON</button>
+          <button class="btn btn-outline btn-sm" onclick="app.copyHotelsMarkdown()">📋 Copy Schedule</button>
+          <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Print Voucher</button>
+        </div>
+      </div>
+
+      <!-- Hotels Stats Bar -->
+      <div class="hotels-stats-bar">
+        <div class="stat-pill"><strong>🏨 6</strong> Booked Accommodations</div>
+        <div class="stat-pill"><strong>🌙 13</strong> Nights Across Italy</div>
+        <div class="stat-pill"><strong>📍 5</strong> Iconic Destinations</div>
+        <div class="stat-pill"><strong>📅 Oct 18 – Oct 31, 2026</strong></div>
+      </div>
+
+      <div class="hotels-view-container">
+        <!-- Left Pane: Timeline Cards -->
+        <div class="hotels-timeline-pane">
+          <div id="hotels-cards-container" class="hotels-cards-flow">
+            <!-- Rendered dynamically via JavaScript -->
+          </div>
+        </div>
+
+        <!-- Right Pane: Interactive Hotels Map -->
+        <div class="hotels-map-pane">
+          <div class="map-header-bar">
+            <span>📍 Hotels & Journey Route Map</span>
+            <div class="map-legend">
+              <span class="legend-item"><span class="legend-dot hotel-dot"></span> Hotel Stay</span>
+              <span class="legend-item"><span class="legend-dot stop-dot"></span> Transit Hub</span>
+            </div>
+          </div>
+          <div id="hotels-map-canvas" class="map-view"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: MY SELECTED PLAN & CUSTOMIZER -->
     <section id="tab-selections" class="tab-content">
       <div class="selections-header-bar">
         <div>

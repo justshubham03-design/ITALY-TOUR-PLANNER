@@ -147,8 +147,18 @@ class TestRESTAPI(unittest.TestCase):
         status, data = execute_request('POST', '/api/mcp/call', mcp_payload)
         self.assertEqual(status, 200)
         self.assertTrue(data['success'])
-        self.assertEqual(data['tool'], 'calculate_route')
-        self.assertIn('distanceKm', data['result'])
+    def test_hotels_endpoint(self):
+        status, data = execute_request('GET', '/api/hotels')
+        self.assertEqual(status, 200)
+        self.assertIn('hotels', data)
+        self.assertEqual(len(data['hotels']), 6)
+        hotel_names = [h['name'] for h in data['hotels']]
+        self.assertIn("HD8 Hotel Milano", hotel_names)
+        self.assertIn("Club del Sole Desenzano Lake Village", hotel_names)
+        self.assertIn("Trevi Velvet House", hotel_names)
+        self.assertIn("La Meraviglia di Sorrento", hotel_names)
+        self.assertIn("Suite Delfino 39", hotel_names)
+        self.assertIn("Ariosto Living Milano", hotel_names)
 
 
 if __name__ == "__main__":

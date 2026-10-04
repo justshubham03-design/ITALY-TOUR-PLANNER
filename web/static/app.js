@@ -16,6 +16,10 @@ class ViaggioApp {
     this.map = null;
     this.markers = [];
     this.polylines = [];
+    this.hotels = [];
+    this.hotelsMap = null;
+    this.hotelMarkers = [];
+    this.hotelPolylines = [];
 
     this.mcpSampleArgs = {
       search_places: { query: 'Piazza Tasso', city_or_region: 'sorrento', category: 'all' },
@@ -54,11 +58,17 @@ class ViaggioApp {
       if (globalSelect) globalSelect.value = this.currentCity;
       const formDest = document.getElementById('form-destination');
       if (formDest) formDest.value = this.currentCity;
-      await this.loadExploreData();
+      await Promise.all([
+        this.loadExploreData(),
+        this.loadHotelsData()
+      ]);
       this.renderItineraryView();
       this.renderSelectionsView();
     } else {
-      await this.loadPreset('sorrento');
+      await Promise.all([
+        this.loadPreset('sorrento'),
+        this.loadHotelsData()
+      ]);
     }
   }
 
@@ -192,6 +202,15 @@ class ViaggioApp {
         if (this.map) {
           this.map.invalidateSize();
           this.renderMapForActiveDay();
+        }
+      }, 150);
+    } else if (tabId === 'tab-hotels') {
+      setTimeout(() => {
+        if (this.hotelsMap) {
+          this.hotelsMap.invalidateSize();
+          this.renderHotelsMap();
+        } else {
+          this.initHotelsMap();
         }
       }, 150);
     }
@@ -948,6 +967,232 @@ class ViaggioApp {
     } finally {
       if (runBtn) runBtn.disabled = false;
     }
+  }
+
+
+  // ==========================================
+  // HOTELS DATA & INTERACTIVE MAP VIEW
+  // ==========================================
+  async loadHotelsData() {
+    try {
+      const res = await fetch('/api/hotels');
+      if (!res.ok) throw new Error('Failed to load hotels');
+      const data = await res.json();
+      this.hotels = data.hotels || [];
+      this.renderHotelsView();
+      this.initHotelsMap();
+    } catch (err) {
+      console.error('Error loading hotels data:', err);
+    }
+  }
+
+  renderHotelsView() {
+    const container = document.getElementById('hotels-cards-container');
+    if (!container) return;
+
+    if (!this.hotels || this.hotels.length === 0) {
+      container.innerHTML = '<div class="empty-state">No hotel bookings registered.</div>';
+      return;
+    }
+
+    container.innerHTML = this.hotels.map((hotel, idx) => {
+      const safeName = (hotel.name || 'Hotel').replace(/'/g, "\\'");
+      const photosUrl = hotel.google_maps_url || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(hotel.name + ', ' + hotel.city + ', Italy'));
+      const imageUrl = hotel.image_url || 'https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?w=800&q=80';
+      const amenities = hotel.amenities || ['High-Speed Wi-Fi', 'Air Conditioning', 'Central Location'];
+
+      return `
+        <div class="hotel-timeline-card" id="hotel-card-${idx}">
+          <div class="hotel-card-top-bar">
+            <div class="hotel-seq-badge">
+              <span class="seq-num">#${hotel.sequence || idx + 1}</span>
+              <span class="seq-city">${hotel.city.toUpperCase()}</span>
+            </div>
+            <span class="hotel-status-tag">✓ ${hotel.booking_status || 'Confirmed Booking'}</span>
+          </div>
+
+          <div class="hotel-card-main-layout">
+            <div class="hotel-photo-thumb-container" onclick="app.openPhotoLightbox('${safeName}', '${imageUrl}', '${photosUrl}')" title="Click to view full photo">
+              <img src="${imageUrl}" alt="${hotel.name}" class="hotel-thumb-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?w=800&q=80'">
+              <div class="photo-overlay-tag">📸 View Photo</div>
+            </div>
+
+            <div class="hotel-content">
+              <div class="hotel-header-row">
+                <div>
+                  <a href="${photosUrl}" target="_blank" class="hotel-title-link" title="Open in Google Maps">
+                    <h3 class="hotel-name">${hotel.name} <span class="external-icon">↗</span></h3>
+                  </a>
+                  <p class="hotel-address">📍 ${hotel.address}</p>
+                </div>
+                <span class="hotel-rating">⭐ ${hotel.rating || 4.8}</span>
+              </div>
+
+              <!-- Check-In / Check-Out Highlight Box -->
+              <div class="hotel-dates-grid">
+                <div class="hotel-date-box checkin-box">
+                  <div class="date-box-label">🟢 CHECK-IN</div>
+                  <div class="date-box-val">${hotel.check_in_display || (hotel.check_in_date + ' (' + hotel.check_in_time + ')')}</div>
+                </div>
+                <div class="hotel-date-box checkout-box">
+                  <div class="date-box-label">🔴 CHECK-OUT</div>
+                  <div class="date-box-val">${hotel.check_out_display || (hotel.check_out_date + ' (' + hotel.check_out_time + ')')}</div>
+                </div>
+                <div class="hotel-date-box nights-box">
+                  <div class="date-box-label">🌙 STAY DURATION</div>
+                  <div class="date-box-val"><strong>${hotel.nights} ${hotel.nights === 1 ? 'Night' : 'Nights'}</strong></div>
+                </div>
+              </div>
+
+              <p class="hotel-desc">${hotel.description || ''}</p>
+
+              <!-- Amenities Pills -->
+              <div class="hotel-amenities-row">
+                ${amenities.map(a => `<span class="amenity-pill">✨ ${a}</span>`).join('')}
+              </div>
+
+              <!-- Quick Action Row -->
+              <div class="hotel-actions-row">
+                <a href="${photosUrl}" target="_blank" class="btn btn-sm btn-primary">🗺️ Google Maps Directions ↗</a>
+                <button class="btn btn-sm btn-outline" onclick="app.focusHotelOnMap(${idx})">📍 View on Map</button>
+                <button class="btn btn-sm btn-outline" onclick="app.loadPreset('${hotel.city_id}'); app.switchToTab('tab-itinerary');">✈️ Explore ${hotel.city}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  initHotelsMap() {
+    const mapEl = document.getElementById('hotels-map-canvas');
+    if (!mapEl) return;
+
+    if (this.hotelsMap) {
+      try { this.hotelsMap.remove(); } catch (e) {}
+    }
+
+    // Centered on Italy overview
+    this.hotelsMap = L.map('hotels-map-canvas', {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([42.5, 12.8], 6);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    }).addTo(this.hotelsMap);
+
+    this.renderHotelsMap();
+  }
+
+  renderHotelsMap() {
+    if (!this.hotelsMap || !this.hotels || this.hotels.length === 0) return;
+
+    // Clear existing hotel markers
+    this.hotelMarkers.forEach(m => this.hotelsMap.removeLayer(m));
+    this.hotelPolylines.forEach(p => this.hotelsMap.removeLayer(p));
+    this.hotelMarkers = [];
+    this.hotelPolylines = [];
+
+    const latLngs = [];
+
+    this.hotels.forEach((hotel, idx) => {
+      if (!hotel.coordinates || !hotel.coordinates.lat || !hotel.coordinates.lng) return;
+
+      const customHotelIcon = L.divIcon({
+        className: 'custom-hotel-pin',
+        html: `<div style="background-color:#D4A373; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2B1E16; font-weight:800; font-size:12px; border:2px solid #ffffff; box-shadow:0 4px 10px rgba(0,0,0,0.35); cursor:pointer;">🏨 ${idx + 1}</div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+        popupAnchor: [0, -17]
+      });
+
+      const marker = L.marker([hotel.coordinates.lat, hotel.coordinates.lng], { icon: customHotelIcon }).addTo(this.hotelsMap);
+      const photosUrl = hotel.google_maps_url || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(hotel.name + ', ' + hotel.city + ', Italy'));
+
+      const popupContent = `
+        <div style="font-family: inherit; padding: 6px; min-width: 220px;">
+          <span style="font-size: 11px; font-weight: 700; color: #C85A32; text-transform: uppercase;">Stay #${hotel.sequence || idx + 1} · ${hotel.city}</span>
+          <h4 style="margin: 3px 0 6px 0; font-size: 14px; color: #1B3B6F;">${hotel.name}</h4>
+          <div style="font-size: 12px; margin-bottom: 4px;"><strong>🟢 In:</strong> ${hotel.check_in_display}</div>
+          <div style="font-size: 12px; margin-bottom: 6px;"><strong>🔴 Out:</strong> ${hotel.check_out_display}</div>
+          <p style="font-size: 11px; color: #555; margin-bottom: 8px;">📍 ${hotel.address}</p>
+          <a href="${photosUrl}" target="_blank" style="display:inline-block; font-size:12px; color:#C85A32; font-weight:bold; text-decoration:none;">🗺️ Open in Google Maps ↗</a>
+        </div>
+      `;
+      marker.bindPopup(popupContent);
+      this.hotelMarkers.push(marker);
+      latLngs.push([hotel.coordinates.lat, hotel.coordinates.lng]);
+    });
+
+    // Draw connecting journey route across Italy
+    if (latLngs.length > 1) {
+      const polyline = L.polyline(latLngs, {
+        color: '#D4A373',
+        weight: 3.5,
+        opacity: 0.85,
+        dashArray: '8, 8'
+      }).addTo(this.hotelsMap);
+      this.hotelPolylines.push(polyline);
+      this.hotelsMap.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+    } else if (latLngs.length === 1) {
+      this.hotelsMap.setView(latLngs[0], 12);
+    }
+  }
+
+  focusHotelOnMap(hotelIdx) {
+    if (!this.hotels || !this.hotels[hotelIdx]) return;
+    const hotel = this.hotels[hotelIdx];
+    
+    // Switch to tab if needed
+    if (this.activeTab !== 'tab-hotels') {
+      this.switchToTab('tab-hotels');
+    }
+
+    setTimeout(() => {
+      if (this.hotelsMap && hotel.coordinates) {
+        this.hotelsMap.setView([hotel.coordinates.lat, hotel.coordinates.lng], 14, { animate: true });
+        if (this.hotelMarkers[hotelIdx]) {
+          this.hotelMarkers[hotelIdx].openPopup();
+        }
+      }
+    }, 200);
+  }
+
+  exportHotelsJSON() {
+    if (!this.hotels || this.hotels.length === 0) {
+      alert('No hotels data to export.');
+      return;
+    }
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(this.hotels, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', 'viaggio_italia_hotels_schedule.json');
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  }
+
+  copyHotelsMarkdown() {
+    if (!this.hotels || this.hotels.length === 0) {
+      alert('No hotels data to copy.');
+      return;
+    }
+    let md = '# 🏨 Viaggio Italia — Booked Accommodations Schedule\n\n';
+    this.hotels.forEach(h => {
+      md += `## Stay #${h.sequence}: ${h.name} (${h.city})\n`;
+      md += `- **Check-In:** ${h.check_in_display}\n`;
+      md += `- **Check-Out:** ${h.check_out_display} (${h.nights} Nights)\n`;
+      md += `- **Address:** ${h.address}\n`;
+      md += `- **Map Link:** ${h.google_maps_url}\n\n`;
+    });
+
+    navigator.clipboard.writeText(md).then(() => {
+      alert('✅ Hotel accommodations schedule copied to clipboard!');
+    }).catch(err => {
+      console.error('Failed to copy markdown:', err);
+    });
   }
 
   // Export & Utilities
